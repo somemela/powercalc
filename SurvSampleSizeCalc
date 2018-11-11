@@ -1,0 +1,52 @@
+#' Calculate Number of Deaths and Total Number of Sample Size Required for Cox Proportional Hazards Model 
+#' 
+#' @author Heng-Ming Sung
+#'
+#' @description
+#' Sample size calculation for Cox proportional hazards regression with two covariates for Epidemiological Studies.
+#' The covariate of interest should be a binary variable. The other covariate can be either binary or non-binary.
+#' The formula takes into account competing risks and the correlation between the two covariates.
+#'
+#' @usage
+#' SurvSampleSizeCalc(power = 0.8, theta, p = 0.5, psi, rho2 = 0, alpha = 0.05)
+#'
+#' @param power A vector of desirable power. Default value set to 0.8 to achieve 80 percent power.
+#' @param theta A vector of desirable hazard ratio.
+#' @param p The proportion of subjects taking value one for the covariate of interest. Default value set to 0.5 to achive 1:1 sample size for binary group.
+#' @param psi The proportion of subjects died of the disease of interest.
+#' @param rho2 The square of the correlation between the covariate of interest and the other covariate. Default value set to 0 to calculate sample size for causal analysis.
+#' @param alpha Type I error value for 2-sided hypothesis testing. Default value set to 0.05 to achive 95 percent confidence.
+#'
+#' @return A data frame of parameters with D (total number of death), N (total number of sample size), n1 (number of sample size for treatment group), and n2 (number of sample size for control group)
+#'
+#' @details
+#' This function calculate total number of death and total number of sample size to achive default value of 80 percent power, and return a data frame of the combination of set parameters.
+#' The parameters include power, theta, p , psi. rho2, alpha, D, N, n1, n2. The sample size formula was derived by Latouche et al. (2004) for the Cox proportional hazards regression in the epidemiological studies.
+#'
+#' @examples
+#' SurvSampleSizeCalc(power = 0.80, theta = 2, p = 0.39 , psi = 0.505, rho2 = 0.132^2, alpha = 0.05)
+#' SurvSampleSizeCalc(power = seq(0.5, 0.9, by = 0.1), theta = seq(0.5, 1.0, by = 0.001), psi = c(0.01, 0.015, 0.04))
+#'
+#' @export
+
+SurvSampleSizeCalc <- function(power = 0.8, theta, p = 0.5, psi, rho2 = 0, alpha = 0.05) {
+
+  power_list <- power
+  theta_list <- theta
+  p_list <- p
+  psi_list <- psi
+  rho2_list <- rho2
+  alpha_list <- alpha
+
+  x <- expand.grid(power = power_list, theta = theta_list, p = p_list, psi = psi_list, rho2 = rho2_list, alpha = alpha_list)
+
+  x$D <- (qnorm(1 - x$alpha/2) + qnorm(x$power))^2 / ((log(x$theta))^2 * x$p * (1-x$p) * (1-x$rho2))
+  x$N <- ceiling(x$D / x$psi)
+  x$n1 <- ceiling(x$D / x$psi * x$p)
+  x$n2 <- ceiling(x$D / x$psi * (1-x$p))
+  x$D <- ceiling(x$D)
+
+  x <- tibble::as.tibble(x)
+  return(x)
+
+}
